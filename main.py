@@ -1,8 +1,4 @@
-# coding=utf-8
 
-# ==============================
-# IMPORTACIONES
-# ==============================
 import hashlib
 import pymysql
 from pymysql.cursors import DictCursor
