@@ -1,6 +1,9 @@
 
 import pymysql
 import hashlib
+from pydantic import BaseModel
+from typing import List
+from datetime import datetime
 from pymysql.cursors import DictCursor
 from fastapi import FastAPI, HTTPException
 
@@ -20,6 +23,58 @@ cursor_obj = cc.cursor()
 
 app = FastAPI()
 
+class Juego(BaseModel):
+    id_juego: int
+    nombre: str
+    descripcion: str | None = None
+    version: str
+    licencia: str
+
+
+class Modo(BaseModel):
+    id_modo: int
+    nombre: str
+    descripcion: str | None = None
+    activo: bool
+    id_juego: int
+    nombre_juego: str | None = None
+
+
+class Usuario(BaseModel):
+    id_usuario: int
+    nombre: str
+    correo: str
+    fecha_registro: datetime
+    activo: bool
+
+
+class Partida(BaseModel):
+    id_partida: int
+    fecha_partida: datetime
+    estado: str
+    id_usuario: int
+    id_modo: int
+    nombre_usuario: str | None = None
+    nombre_modo: str | None = None
+
+
+class Puntaje(BaseModel):
+    id_puntaje: int
+    puntos: int
+    tiros: int
+    id_partida: int
+    nombre_usuario: str | None = None
+    nombre_modo: str | None = None
+
+
+class Ranking(BaseModel):
+    id_ranking: int
+    fecha_ultima_partida: datetime
+    usuario: str
+    modo: str
+    puntos: int
+    tiros: int
+    
 @app.get("/")
 async def root():
     return {"message": "API MomentumX funcionando"}
@@ -34,7 +89,7 @@ async def insert_juego(nombre: str, descripcion: str, version: str, licencia: st
     return {"mensaje": "Juego creado"}
 
 #Ruta para obtener informacion de un juego
-@app.get("/select/juego", tags=["Juego"])
+@app.get("/select/juego", tags=["Juego"], response_model=List[Juego])
 async def select_juegos():
     cursor_obj.execute("SELECT * FROM juego ORDER BY id_juego")
     return cursor_obj.fetchall()
@@ -84,7 +139,7 @@ async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int
     return {"mensaje": "Modo creado"}
 
 #Ruta para obtener informacion de un modo
-@app.get("/select/modo", tags=["Modo"])
+@app.get("/select/modo", tags=["Modo"], response_model=List[Modo])
 async def select_modos():
     cursor_obj.execute("""
         SELECT mj.*, j.nombre AS nombre_juego
@@ -145,7 +200,7 @@ async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo:
     return {"mensaje": "Usuario creado"}
 
 #Ruta para obtener informacion de un usuario
-@app.get("/select/usuario", tags=["Usuario"])
+@app.get("/select/usuario", tags=["Usuario"], response_model=List[Usuario])
 async def select_usuarios():
     cursor_obj.execute("SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario ORDER BY id_usuario")
     return cursor_obj.fetchall()
@@ -199,7 +254,7 @@ async def insert_partida(id_usuario: int, id_modo: int):
     return {"mensaje": "Partida creada"}
 
 #Ruta para obtener informacion de una partida
-@app.get("/select/partida", tags=["Partida"])
+@app.get("/select/partida", tags=["Partida"], response_model=List[Partida])
 async def select_partidas():
     cursor_obj.execute("""
         SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -264,7 +319,7 @@ async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
     return {"mensaje": "Puntaje registrado"}
 
 #Ruta para obtener informacion de un puntaje
-@app.get("/select/puntaje", tags=["Puntaje"])
+@app.get("/select/puntaje", tags=["Puntaje"], response_model=List[Puntaje])
 async def select_puntajes():
     cursor_obj.execute("""
         SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -355,7 +410,7 @@ async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
         return {"mensaje": "Puntaje no supera el récord actual"}
 
 #Ruta para obtener informacion del ranking
-@app.get("/select/ranking", tags=["Ranking"])
+@app.get("/select/ranking", tags=["Ranking"], response_model=List[Ranking])
 async def select_ranking():
     cursor_obj.execute("""
         SELECT r.id_ranking, u.nombre AS usuario, mj.nombre AS modo,
