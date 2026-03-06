@@ -1,5 +1,6 @@
 
 import pymysql
+import hashlib
 from pymysql.cursors import DictCursor
 from fastapi import FastAPI, HTTPException
 
@@ -126,8 +127,12 @@ async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo:
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE correo = '" + correo + "'")
     if cursor_obj.fetchone():
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
+    
+    # Hashear la contraseña igual que lo hace el juego
+    hash_pw = hashlib.sha256(contrasena_hash.encode()).hexdigest()
+    
     sql = "INSERT INTO usuario (nombre, correo, contrasena_hash, fecha_registro, activo) VALUES ('" + \
-        nombre + "','" + correo + "','" + contrasena_hash + "', NOW()," + str(int(activo)) + ")"
+        nombre + "','" + correo + "','" + hash_pw + "', NOW()," + str(int(activo)) + ")"
     cursor_obj.execute(sql)
     cc.commit()
     return {"mensaje": "Usuario creado"}
