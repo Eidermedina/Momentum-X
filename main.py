@@ -25,7 +25,7 @@ async def root():
     return {"message": "API MomentumX funcionando"}
 
 #Ruta para crear juego
-@app.post("/insert/juego")
+@app.post("/insert/juego", tags=["Juego"])
 async def insert_juego(nombre: str, descripcion: str, version: str, licencia: str):
     sql = "INSERT INTO juego (nombre, descripcion, version, licencia) VALUES ('" + \
         nombre + "','" + descripcion + "','" + version + "','" + licencia + "')"
@@ -34,13 +34,13 @@ async def insert_juego(nombre: str, descripcion: str, version: str, licencia: st
     return {"mensaje": "Juego creado"}
 
 #Ruta para obtener informacion de un juego
-@app.get("/select/juego")
+@app.get("/select/juego", tags=["Juego"])
 async def select_juegos():
     cursor_obj.execute("SELECT * FROM juego ORDER BY id_juego")
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de un juego por (id)
-@app.get("/select/juego/{id}")
+@app.get("/select/juego/{id}", tags=["Juego"])
 async def select_juego(id: int):
     cursor_obj.execute("SELECT * FROM juego WHERE id_juego = " + str(id))
     row = cursor_obj.fetchone()
@@ -49,7 +49,7 @@ async def select_juego(id: int):
     return row
 
 #Ruta para actualizar informacion de un juego
-@app.put("/update/juego/{id}")
+@app.put("/update/juego/{id}", tags=["Juego"])
 async def update_juego(id: int, nombre: str, descripcion: str, version: str, licencia: str):
     cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id))
     if not cursor_obj.fetchone():
@@ -62,7 +62,7 @@ async def update_juego(id: int, nombre: str, descripcion: str, version: str, lic
     return {"mensaje": "Juego actualizado"}
 
 #Ruta para eliminar un juego
-@app.delete("/delete/juego/{id}")
+@app.delete("/delete/juego/{id}", tags=["Juego"])
 async def delete_juego(id: int):
     cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id))
     if not cursor_obj.fetchone():
@@ -72,7 +72,7 @@ async def delete_juego(id: int):
     return {"mensaje": "Juego eliminado"}
 
 #Ruta para insertar un modo
-@app.post("/insert/modo")
+@app.post("/insert/modo", tags=["Modo"])
 async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int):
     cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id_juego))
     if not cursor_obj.fetchone():
@@ -84,7 +84,7 @@ async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int
     return {"mensaje": "Modo creado"}
 
 #Ruta para obtener informacion de un modo
-@app.get("/select/modo")
+@app.get("/select/modo", tags=["Modo"])
 async def select_modos():
     cursor_obj.execute("""
         SELECT mj.*, j.nombre AS nombre_juego
@@ -95,7 +95,7 @@ async def select_modos():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de un modo (id)
-@app.get("/select/modo/{id}")
+@app.get("/select/modo/{id}", tags=["Modo"])
 async def select_modo(id: int):
     cursor_obj.execute("""
         SELECT mj.*, j.nombre AS nombre_juego
@@ -108,7 +108,7 @@ async def select_modo(id: int):
     return row
 
 #Ruta para actualizar informacion de un modo
-@app.put("/update/modo/{id}")
+@app.put("/update/modo/{id}", tags=["Modo"])
 async def update_modo(id: int, nombre: str, descripcion: str, activo: bool):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id))
     if not cursor_obj.fetchone():
@@ -120,7 +120,7 @@ async def update_modo(id: int, nombre: str, descripcion: str, activo: bool):
     return {"mensaje": "Modo actualizado"}
 
 #Ruta para eliminar un modo
-@app.delete("/delete/modo/{id}")
+@app.delete("/delete/modo/{id}", tags=["Modo"])
 async def delete_modo(id: int):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id))
     if not cursor_obj.fetchone():
@@ -130,7 +130,7 @@ async def delete_modo(id: int):
     return {"mensaje": "Modo eliminado"}
 
 #Ruta para insertar un usuario
-@app.post("/insert/usuario")
+@app.post("/insert/usuario", tags=["Usuario"])
 async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo: bool = True):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE correo = '" + correo + "'")
     if cursor_obj.fetchone():
@@ -145,13 +145,13 @@ async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo:
     return {"mensaje": "Usuario creado"}
 
 #Ruta para obtener informacion de un usuario
-@app.get("/select/usuario")
+@app.get("/select/usuario", tags=["Usuario"])
 async def select_usuarios():
     cursor_obj.execute("SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario ORDER BY id_usuario")
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de un usuario (id)
-@app.get("/select/usuario/{id}")
+@app.get("/select/usuario/{id}", tags=["Usuario"])
 async def select_usuario(id: int):
     cursor_obj.execute(
         "SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario WHERE id_usuario = " + str(id)
@@ -162,7 +162,7 @@ async def select_usuario(id: int):
     return row
 
 #Ruta para actualizar informacion de un usuario
-@app.put("/update/usuario/{id}")
+@app.put("/update/usuario/{id}", tags=["Usuario"])
 async def update_usuario(id: int, nombre: str, correo: str, activo: bool):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id))
     if not cursor_obj.fetchone():
@@ -174,7 +174,7 @@ async def update_usuario(id: int, nombre: str, correo: str, activo: bool):
     return {"mensaje": "Usuario actualizado"}
 
 #Ruta para eliminar un usuario
-@app.delete("/delete/usuario/{id}")
+@app.delete("/delete/usuario/{id}", tags=["Usuario"])
 async def delete_usuario(id: int):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id))
     if not cursor_obj.fetchone():
@@ -184,7 +184,7 @@ async def delete_usuario(id: int):
     return {"mensaje": "Usuario eliminado"}
 
 #Ruta para insertar una partida
-@app.post("/insert/partida")
+@app.post("/insert/partida", tags=["Partida"])
 async def insert_partida(id_usuario: int, id_modo: int):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id_usuario))
     if not cursor_obj.fetchone():
@@ -199,7 +199,7 @@ async def insert_partida(id_usuario: int, id_modo: int):
     return {"mensaje": "Partida creada"}
 
 #Ruta para obtener informacion de una partida
-@app.get("/select/partida")
+@app.get("/select/partida", tags=["Partida"])
 async def select_partidas():
     cursor_obj.execute("""
         SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -211,7 +211,7 @@ async def select_partidas():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de una partida (id)
-@app.get("/select/partida/{id}")
+@app.get("/select/partida/{id}", tags=["Partida"])
 async def select_partida(id: int):
     cursor_obj.execute("""
         SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -225,7 +225,7 @@ async def select_partida(id: int):
     return row
 
 #Ruta para actualizar informacion de una partida
-@app.put("/update/partida/{id}")
+@app.put("/update/partida/{id}", tags=["Partida"])
 async def update_partida(id: int, estado: str):
     if estado not in ("en_curso", "finalizada", "abandonada"):
         raise HTTPException(status_code=400, detail="Estado inválido. Use: en_curso, finalizada, abandonada")
@@ -237,7 +237,7 @@ async def update_partida(id: int, estado: str):
     return {"mensaje": "Partida actualizada"}
 
 #Ruta para eliminar una partida
-@app.delete("/delete/partida/{id}")
+@app.delete("/delete/partida/{id}", tags=["Partida"])
 async def delete_partida(id: int):
     cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id))
     if not cursor_obj.fetchone():
@@ -247,7 +247,7 @@ async def delete_partida(id: int):
     return {"mensaje": "Partida eliminada"}
 
 #Ruta para insertar un puntaje
-@app.post("/insert/puntaje")
+@app.post("/insert/puntaje", tags=["Puntaje"])
 async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
     cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id_partida))
     if not cursor_obj.fetchone():
@@ -264,7 +264,7 @@ async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
     return {"mensaje": "Puntaje registrado"}
 
 #Ruta para obtener informacion de un puntaje
-@app.get("/select/puntaje")
+@app.get("/select/puntaje", tags=["Puntaje"])
 async def select_puntajes():
     cursor_obj.execute("""
         SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -277,7 +277,7 @@ async def select_puntajes():
     return cursor_obj.fetchall()
  
 #Ruta para obtener informacion de un puntaje (id)
-@app.get("/select/puntaje/{id}")
+@app.get("/select/puntaje/{id}", tags=["Puntaje"])
 async def select_puntaje(id: int):
     cursor_obj.execute("""
         SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -292,7 +292,7 @@ async def select_puntaje(id: int):
     return row
 
 #Ruta para actualizar informacion de un puntaje
-@app.put("/update/puntaje/{id}")
+@app.put("/update/puntaje/{id}", tags=["Puntaje"])
 async def update_puntaje(id: int, puntos: int, tiros: int):
     cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id))
     if not cursor_obj.fetchone():
@@ -304,7 +304,7 @@ async def update_puntaje(id: int, puntos: int, tiros: int):
     return {"mensaje": "Puntaje actualizado"}
 
 #Ruta para eliminar un puntaje
-@app.delete("/delete/puntaje/{id}")
+@app.delete("/delete/puntaje/{id}", tags=["Puntaje"])
 async def delete_puntaje(id: int):
     cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id))
     if not cursor_obj.fetchone():
@@ -314,7 +314,7 @@ async def delete_puntaje(id: int):
     return {"mensaje": "Puntaje eliminado"}
 
 #Ruta para insertar un ranking
-@app.post("/insert/ranking")
+@app.post("/insert/ranking", tags=["Ranking"])
 async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id_usuario))
     if not cursor_obj.fetchone():
@@ -355,7 +355,7 @@ async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
         return {"mensaje": "Puntaje no supera el récord actual"}
 
 #Ruta para obtener informacion del ranking
-@app.get("/select/ranking")
+@app.get("/select/ranking", tags=["Ranking"])
 async def select_ranking():
     cursor_obj.execute("""
         SELECT r.id_ranking, u.nombre AS usuario, mj.nombre AS modo,
@@ -369,7 +369,7 @@ async def select_ranking():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion del ranking (id)
-@app.get("/select/ranking/{id_modo}")
+@app.get("/select/ranking/{id_modo}", tags=["Ranking"])
 async def select_ranking_por_modo(id_modo: int):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id_modo))
     if not cursor_obj.fetchone():
@@ -383,7 +383,7 @@ async def select_ranking_por_modo(id_modo: int):
     return cursor_obj.fetchall()
 
 #Ruta para actualizar informacion del ranking
-@app.put("/update/ranking/{id}")
+@app.put("/update/ranking/{id}", tags=["Ranking"])
 async def update_ranking(id: int, id_puntaje: int):
     cursor_obj.execute("SELECT id_ranking FROM ranking WHERE id_ranking = " + str(id))
     if not cursor_obj.fetchone():
@@ -399,7 +399,7 @@ async def update_ranking(id: int, id_puntaje: int):
     return {"mensaje": "Ranking actualizado"}
 
 #Ruta para eliminar un ranking
-@app.delete("/delete/ranking/{id}")
+@app.delete("/delete/ranking/{id}", tags=["Ranking"])
 async def delete_ranking(id: int):
     cursor_obj.execute("SELECT id_ranking FROM ranking WHERE id_ranking = " + str(id))
     if not cursor_obj.fetchone():
