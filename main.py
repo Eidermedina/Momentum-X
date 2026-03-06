@@ -1,23 +1,13 @@
-# coding=utf-8
 
-# ==============================
-# Importar librerías
-# ==============================
 import pymysql
 from pymysql.cursors import DictCursor
 from fastapi import FastAPI, HTTPException
 
-# ==============================
-# Variables de conexión — MariaDB XAMPP
-# ==============================
 DB_HOST  = "localhost"
 DB_NAME  = "momentumbase"
 DB_USER  = "juan"
 DB_PASWD = "12345"
 
-# ==============================
-# Conectar a la base de datos
-# ==============================
 cc = pymysql.connect(
     host        = DB_HOST,
     user        = DB_USER,
@@ -27,9 +17,6 @@ cc = pymysql.connect(
 )
 cursor_obj = cc.cursor()
 
-# ==============================
-# Creación de objeto API
-# ==============================
 app = FastAPI()
 
 @app.get("/")
@@ -37,9 +24,6 @@ async def root():
     return {"message": "API MomentumX funcionando"}
 
 
-# =========================================================
-# ======================== JUEGO ==========================
-# =========================================================
 
 @app.post("/insert/juego")
 async def insert_juego(nombre: str, descripcion: str, version: str, licencia: str):
@@ -83,10 +67,6 @@ async def delete_juego(id: int):
     cc.commit()
     return {"mensaje": "Juego eliminado"}
 
-
-# =========================================================
-# ====================== MODO JUEGO =======================
-# =========================================================
 
 @app.post("/insert/modo")
 async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int):
@@ -141,11 +121,6 @@ async def delete_modo(id: int):
     cc.commit()
     return {"mensaje": "Modo eliminado"}
 
-
-# =========================================================
-# ======================== USUARIO ========================
-# =========================================================
-
 @app.post("/insert/usuario")
 async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo: bool = True):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE correo = '" + correo + "'")
@@ -191,11 +166,6 @@ async def delete_usuario(id: int):
     cursor_obj.execute("DELETE FROM usuario WHERE id_usuario = " + str(id))
     cc.commit()
     return {"mensaje": "Usuario eliminado"}
-
-
-# =========================================================
-# ======================== PARTIDA ========================
-# =========================================================
 
 @app.post("/insert/partida")
 async def insert_partida(id_usuario: int, id_modo: int):
@@ -254,11 +224,6 @@ async def delete_partida(id: int):
     cursor_obj.execute("DELETE FROM partida WHERE id_partida = " + str(id))
     cc.commit()
     return {"mensaje": "Partida eliminada"}
-
-
-# =========================================================
-# ======================== PUNTAJE ========================
-# =========================================================
 
 @app.post("/insert/puntaje")
 async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
@@ -321,11 +286,6 @@ async def delete_puntaje(id: int):
     cursor_obj.execute("DELETE FROM puntaje WHERE id_puntaje = " + str(id))
     cc.commit()
     return {"mensaje": "Puntaje eliminado"}
-
-
-# =========================================================
-# ======================== RANKING ========================
-# =========================================================
 
 @app.post("/insert/ranking")
 async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
