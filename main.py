@@ -1,557 +1,418 @@
 # coding=utf-8
 
 # ==============================
-# IMPORTACIONES
+# Importar librerías
 # ==============================
 import pymysql
 from pymysql.cursors import DictCursor
 from fastapi import FastAPI, HTTPException
 
-# ======================================================
-# CREDENCIALES — ajustadas a tu MariaDB en XAMPP
-# BD: momentumbase | usuario: juan | contraseña: 12345
-# ======================================================
+# ==============================
+# Variables de conexión — MariaDB XAMPP
+# ==============================
 DB_HOST  = "localhost"
 DB_NAME  = "momentumbase"
 DB_USER  = "juan"
 DB_PASWD = "12345"
 
 # ==============================
-# CONEXIÓN — se abre por petición
+# Conectar a la base de datos
 # ==============================
-def get_cursor():
-    """Abre conexión fresca por cada petición y retorna (conn, cursor)."""
-    try:
-        conn = pymysql.connect(
-            host        = DB_HOST,
-            user        = DB_USER,
-            password    = DB_PASWD,
-            database    = DB_NAME,
-            cursorclass = DictCursor
-        )
-        return conn, conn.cursor()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error de conexión a la BD: {str(e)}")
+cc = pymysql.connect(
+    host        = DB_HOST,
+    user        = DB_USER,
+    password    = DB_PASWD,
+    database    = DB_NAME,
+    cursorclass = DictCursor
+)
+cursor_obj = cc.cursor()
 
 # ==============================
-# CREAR API
+# Creación de objeto API
 # ==============================
 app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "API MomentumX funcionando 🚀"}
+    return {"message": "API MomentumX funcionando"}
 
 
 # =========================================================
 # ======================== JUEGO ==========================
 # =========================================================
 
-@app.post("/juego")
-async def crear_juego(nombre: str, descripcion: str, version: str, licencia: str):
-    conn, cur = get_cursor()
-    try:
-        cur.execute(
-            "INSERT INTO juego (nombre, descripcion, version, licencia) VALUES (%s, %s, %s, %s)",
-            (nombre, descripcion, version, licencia)
-        )
-        conn.commit()
-        return {"mensaje": "Juego creado", "id": cur.lastrowid}
-    finally:
-        cur.close(); conn.close()
+@app.post("/insert/juego")
+async def insert_juego(nombre: str, descripcion: str, version: str, licencia: str):
+    sql = "INSERT INTO juego (nombre, descripcion, version, licencia) VALUES ('" + \
+        nombre + "','" + descripcion + "','" + version + "','" + licencia + "')"
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Juego creado"}
 
-@app.get("/juego")
-async def listar_juegos():
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT * FROM juego")
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/juego")
+async def select_juegos():
+    cursor_obj.execute("SELECT * FROM juego ORDER BY id_juego")
+    return cursor_obj.fetchall()
 
-@app.get("/juego/{id}")
-async def obtener_juego(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT * FROM juego WHERE id_juego = %s", (id,))
-        juego = cur.fetchone()
-        if not juego:
-            raise HTTPException(status_code=404, detail="Juego no encontrado")
-        return juego
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/juego/{id}")
+async def select_juego(id: int):
+    cursor_obj.execute("SELECT * FROM juego WHERE id_juego = " + str(id))
+    row = cursor_obj.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Juego no encontrado")
+    return row
 
-@app.put("/juego/{id}")
-async def actualizar_juego(id: int, nombre: str, descripcion: str, version: str, licencia: str):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_juego FROM juego WHERE id_juego = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Juego no encontrado")
-        cur.execute(
-            "UPDATE juego SET nombre=%s, descripcion=%s, version=%s, licencia=%s WHERE id_juego=%s",
-            (nombre, descripcion, version, licencia, id)
-        )
-        conn.commit()
-        return {"mensaje": "Juego actualizado"}
-    finally:
-        cur.close(); conn.close()
+@app.put("/update/juego/{id}")
+async def update_juego(id: int, nombre: str, descripcion: str, version: str, licencia: str):
+    cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Juego no encontrado")
+    sql = "UPDATE juego SET nombre='" + nombre + "', descripcion='" + descripcion + \
+        "', version='" + version + "', licencia='" + licencia + \
+        "' WHERE id_juego=" + str(id)
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Juego actualizado"}
 
-@app.delete("/juego/{id}")
-async def eliminar_juego(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_juego FROM juego WHERE id_juego = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Juego no encontrado")
-        cur.execute("DELETE FROM juego WHERE id_juego = %s", (id,))
-        conn.commit()
-        return {"mensaje": "Juego eliminado"}
-    finally:
-        cur.close(); conn.close()
+@app.delete("/delete/juego/{id}")
+async def delete_juego(id: int):
+    cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Juego no encontrado")
+    cursor_obj.execute("DELETE FROM juego WHERE id_juego = " + str(id))
+    cc.commit()
+    return {"mensaje": "Juego eliminado"}
 
 
 # =========================================================
-# ======================= MODO JUEGO ======================
+# ====================== MODO JUEGO =======================
 # =========================================================
 
-@app.post("/modo")
-async def crear_modo(nombre: str, descripcion: str, activo: bool, id_juego: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_juego FROM juego WHERE id_juego = %s", (id_juego,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Juego no encontrado")
-        cur.execute(
-            "INSERT INTO modo_juego (nombre, descripcion, activo, id_juego) VALUES (%s, %s, %s, %s)",
-            (nombre, descripcion, activo, id_juego)
-        )
-        conn.commit()
-        return {"mensaje": "Modo creado", "id": cur.lastrowid}
-    finally:
-        cur.close(); conn.close()
+@app.post("/insert/modo")
+async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int):
+    cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id_juego))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Juego no encontrado")
+    sql = "INSERT INTO modo_juego (nombre, descripcion, activo, id_juego) VALUES ('" + \
+        nombre + "','" + descripcion + "'," + str(int(activo)) + "," + str(id_juego) + ")"
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Modo creado"}
 
-@app.get("/modo")
-async def listar_modos():
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT mj.*, j.nombre AS nombre_juego
-            FROM modo_juego mj
-            JOIN juego j ON mj.id_juego = j.id_juego
-        """)
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/modo")
+async def select_modos():
+    cursor_obj.execute("""
+        SELECT mj.*, j.nombre AS nombre_juego
+        FROM modo_juego mj
+        JOIN juego j ON mj.id_juego = j.id_juego
+        ORDER BY mj.id_modo
+    """)
+    return cursor_obj.fetchall()
 
-@app.get("/modo/{id}")
-async def obtener_modo(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT mj.*, j.nombre AS nombre_juego
-            FROM modo_juego mj
-            JOIN juego j ON mj.id_juego = j.id_juego
-            WHERE mj.id_modo = %s
-        """, (id,))
-        modo = cur.fetchone()
-        if not modo:
-            raise HTTPException(status_code=404, detail="Modo no encontrado")
-        return modo
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/modo/{id}")
+async def select_modo(id: int):
+    cursor_obj.execute("""
+        SELECT mj.*, j.nombre AS nombre_juego
+        FROM modo_juego mj
+        JOIN juego j ON mj.id_juego = j.id_juego
+        WHERE mj.id_modo = """ + str(id))
+    row = cursor_obj.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Modo no encontrado")
+    return row
 
-@app.put("/modo/{id}")
-async def actualizar_modo(id: int, nombre: str, descripcion: str, activo: bool):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_modo FROM modo_juego WHERE id_modo = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Modo no encontrado")
-        cur.execute(
-            "UPDATE modo_juego SET nombre=%s, descripcion=%s, activo=%s WHERE id_modo=%s",
-            (nombre, descripcion, activo, id)
-        )
-        conn.commit()
-        return {"mensaje": "Modo actualizado"}
-    finally:
-        cur.close(); conn.close()
+@app.put("/update/modo/{id}")
+async def update_modo(id: int, nombre: str, descripcion: str, activo: bool):
+    cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Modo no encontrado")
+    sql = "UPDATE modo_juego SET nombre='" + nombre + "', descripcion='" + descripcion + \
+        "', activo=" + str(int(activo)) + " WHERE id_modo=" + str(id)
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Modo actualizado"}
 
-@app.delete("/modo/{id}")
-async def eliminar_modo(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_modo FROM modo_juego WHERE id_modo = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Modo no encontrado")
-        cur.execute("DELETE FROM modo_juego WHERE id_modo = %s", (id,))
-        conn.commit()
-        return {"mensaje": "Modo eliminado"}
-    finally:
-        cur.close(); conn.close()
+@app.delete("/delete/modo/{id}")
+async def delete_modo(id: int):
+    cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Modo no encontrado")
+    cursor_obj.execute("DELETE FROM modo_juego WHERE id_modo = " + str(id))
+    cc.commit()
+    return {"mensaje": "Modo eliminado"}
 
 
 # =========================================================
 # ======================== USUARIO ========================
 # =========================================================
 
-@app.post("/usuario")
-async def crear_usuario(nombre: str, correo: str, contrasena_hash: str, activo: bool = True):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_usuario FROM usuario WHERE correo = %s", (correo,))
-        if cur.fetchone():
-            raise HTTPException(status_code=400, detail="El correo ya está registrado")
-        cur.execute(
-            "INSERT INTO usuario (nombre, correo, contrasena_hash, fecha_registro, activo) VALUES (%s, %s, %s, NOW(), %s)",
-            (nombre, correo, contrasena_hash, activo)
-        )
-        conn.commit()
-        return {"mensaje": "Usuario creado", "id": cur.lastrowid}
-    finally:
-        cur.close(); conn.close()
+@app.post("/insert/usuario")
+async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo: bool = True):
+    cursor_obj.execute("SELECT id_usuario FROM usuario WHERE correo = '" + correo + "'")
+    if cursor_obj.fetchone():
+        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+    sql = "INSERT INTO usuario (nombre, correo, contrasena_hash, fecha_registro, activo) VALUES ('" + \
+        nombre + "','" + correo + "','" + contrasena_hash + "', NOW()," + str(int(activo)) + ")"
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Usuario creado"}
 
-@app.get("/usuario")
-async def listar_usuarios():
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario")
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/usuario")
+async def select_usuarios():
+    cursor_obj.execute("SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario ORDER BY id_usuario")
+    return cursor_obj.fetchall()
 
-@app.get("/usuario/{id}")
-async def obtener_usuario(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute(
-            "SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario WHERE id_usuario = %s", (id,)
-        )
-        usuario = cur.fetchone()
-        if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        return usuario
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/usuario/{id}")
+async def select_usuario(id: int):
+    cursor_obj.execute(
+        "SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario WHERE id_usuario = " + str(id)
+    )
+    row = cursor_obj.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return row
 
-@app.put("/usuario/{id}")
-async def actualizar_usuario(id: int, nombre: str, correo: str, activo: bool):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_usuario FROM usuario WHERE id_usuario = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        cur.execute(
-            "UPDATE usuario SET nombre=%s, correo=%s, activo=%s WHERE id_usuario=%s",
-            (nombre, correo, activo, id)
-        )
-        conn.commit()
-        return {"mensaje": "Usuario actualizado"}
-    finally:
-        cur.close(); conn.close()
+@app.put("/update/usuario/{id}")
+async def update_usuario(id: int, nombre: str, correo: str, activo: bool):
+    cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    sql = "UPDATE usuario SET nombre='" + nombre + "', correo='" + correo + \
+        "', activo=" + str(int(activo)) + " WHERE id_usuario=" + str(id)
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Usuario actualizado"}
 
-@app.delete("/usuario/{id}")
-async def eliminar_usuario(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_usuario FROM usuario WHERE id_usuario = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        cur.execute("DELETE FROM usuario WHERE id_usuario = %s", (id,))
-        conn.commit()
-        return {"mensaje": "Usuario eliminado"}
-    finally:
-        cur.close(); conn.close()
+@app.delete("/delete/usuario/{id}")
+async def delete_usuario(id: int):
+    cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    cursor_obj.execute("DELETE FROM usuario WHERE id_usuario = " + str(id))
+    cc.commit()
+    return {"mensaje": "Usuario eliminado"}
 
 
 # =========================================================
 # ======================== PARTIDA ========================
 # =========================================================
 
-@app.post("/partida")
-async def crear_partida(id_usuario: int, id_modo: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_usuario FROM usuario WHERE id_usuario = %s", (id_usuario,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        cur.execute("SELECT id_modo FROM modo_juego WHERE id_modo = %s", (id_modo,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Modo no encontrado")
-        cur.execute(
-            "INSERT INTO partida (fecha_partida, estado, id_usuario, id_modo) VALUES (NOW(), 'en_curso', %s, %s)",
-            (id_usuario, id_modo)
-        )
-        conn.commit()
-        return {"mensaje": "Partida creada", "id": cur.lastrowid}
-    finally:
-        cur.close(); conn.close()
+@app.post("/insert/partida")
+async def insert_partida(id_usuario: int, id_modo: int):
+    cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id_usuario))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id_modo))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Modo no encontrado")
+    sql = "INSERT INTO partida (fecha_partida, estado, id_usuario, id_modo) VALUES (NOW(), 'en_curso'," + \
+        str(id_usuario) + "," + str(id_modo) + ")"
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Partida creada"}
 
-@app.get("/partida")
-async def listar_partidas():
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
-            FROM partida p
-            JOIN usuario    u  ON p.id_usuario = u.id_usuario
-            JOIN modo_juego mj ON p.id_modo    = mj.id_modo
-            ORDER BY p.id_partida DESC
-        """)
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/partida")
+async def select_partidas():
+    cursor_obj.execute("""
+        SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
+        FROM partida p
+        JOIN usuario    u  ON p.id_usuario = u.id_usuario
+        JOIN modo_juego mj ON p.id_modo    = mj.id_modo
+        ORDER BY p.id_partida DESC
+    """)
+    return cursor_obj.fetchall()
 
-@app.get("/partida/{id}")
-async def obtener_partida(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
-            FROM partida p
-            JOIN usuario    u  ON p.id_usuario = u.id_usuario
-            JOIN modo_juego mj ON p.id_modo    = mj.id_modo
-            WHERE p.id_partida = %s
-        """, (id,))
-        partida = cur.fetchone()
-        if not partida:
-            raise HTTPException(status_code=404, detail="Partida no encontrada")
-        return partida
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/partida/{id}")
+async def select_partida(id: int):
+    cursor_obj.execute("""
+        SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
+        FROM partida p
+        JOIN usuario    u  ON p.id_usuario = u.id_usuario
+        JOIN modo_juego mj ON p.id_modo    = mj.id_modo
+        WHERE p.id_partida = """ + str(id))
+    row = cursor_obj.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Partida no encontrada")
+    return row
 
-@app.put("/partida/{id}")
-async def actualizar_partida(id: int, estado: str):
+@app.put("/update/partida/{id}")
+async def update_partida(id: int, estado: str):
     if estado not in ("en_curso", "finalizada", "abandonada"):
         raise HTTPException(status_code=400, detail="Estado inválido. Use: en_curso, finalizada, abandonada")
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_partida FROM partida WHERE id_partida = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Partida no encontrada")
-        cur.execute("UPDATE partida SET estado=%s WHERE id_partida=%s", (estado, id))
-        conn.commit()
-        return {"mensaje": "Partida actualizada"}
-    finally:
-        cur.close(); conn.close()
+    cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Partida no encontrada")
+    cursor_obj.execute("UPDATE partida SET estado='" + estado + "' WHERE id_partida=" + str(id))
+    cc.commit()
+    return {"mensaje": "Partida actualizada"}
 
-@app.delete("/partida/{id}")
-async def eliminar_partida(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_partida FROM partida WHERE id_partida = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Partida no encontrada")
-        cur.execute("DELETE FROM partida WHERE id_partida = %s", (id,))
-        conn.commit()
-        return {"mensaje": "Partida eliminada"}
-    finally:
-        cur.close(); conn.close()
+@app.delete("/delete/partida/{id}")
+async def delete_partida(id: int):
+    cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Partida no encontrada")
+    cursor_obj.execute("DELETE FROM partida WHERE id_partida = " + str(id))
+    cc.commit()
+    return {"mensaje": "Partida eliminada"}
 
 
 # =========================================================
 # ======================== PUNTAJE ========================
 # =========================================================
 
-@app.post("/puntaje")
-async def crear_puntaje(puntos: int, tiros: int, id_partida: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_partida FROM partida WHERE id_partida = %s", (id_partida,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Partida no encontrada")
-        cur.execute("SELECT id_puntaje FROM puntaje WHERE id_partida = %s", (id_partida,))
-        if cur.fetchone():
-            raise HTTPException(status_code=400, detail="La partida ya tiene un puntaje registrado")
-        cur.execute(
-            "INSERT INTO puntaje (puntos, tiros, id_partida) VALUES (%s, %s, %s)",
-            (puntos, tiros, id_partida)
-        )
-        conn.commit()
-        id_puntaje = cur.lastrowid
-        cur.execute("UPDATE partida SET estado='finalizada' WHERE id_partida=%s", (id_partida,))
-        conn.commit()
-        return {"mensaje": "Puntaje registrado", "id": id_puntaje}
-    finally:
-        cur.close(); conn.close()
+@app.post("/insert/puntaje")
+async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
+    cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id_partida))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Partida no encontrada")
+    cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_partida = " + str(id_partida))
+    if cursor_obj.fetchone():
+        raise HTTPException(status_code=400, detail="La partida ya tiene un puntaje registrado")
+    sql = "INSERT INTO puntaje (puntos, tiros, id_partida) VALUES (" + \
+        str(puntos) + "," + str(tiros) + "," + str(id_partida) + ")"
+    cursor_obj.execute(sql)
+    cc.commit()
+    cursor_obj.execute("UPDATE partida SET estado='finalizada' WHERE id_partida=" + str(id_partida))
+    cc.commit()
+    return {"mensaje": "Puntaje registrado"}
 
-@app.get("/puntaje")
-async def listar_puntajes():
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
-            FROM puntaje pt
-            JOIN partida    p  ON pt.id_partida = p.id_partida
-            JOIN usuario    u  ON p.id_usuario  = u.id_usuario
-            JOIN modo_juego mj ON p.id_modo     = mj.id_modo
-            ORDER BY pt.puntos DESC
-        """)
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/puntaje")
+async def select_puntajes():
+    cursor_obj.execute("""
+        SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
+        FROM puntaje pt
+        JOIN partida    p  ON pt.id_partida = p.id_partida
+        JOIN usuario    u  ON p.id_usuario  = u.id_usuario
+        JOIN modo_juego mj ON p.id_modo     = mj.id_modo
+        ORDER BY pt.puntos DESC
+    """)
+    return cursor_obj.fetchall()
 
-@app.get("/puntaje/{id}")
-async def obtener_puntaje(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
-            FROM puntaje pt
-            JOIN partida    p  ON pt.id_partida = p.id_partida
-            JOIN usuario    u  ON p.id_usuario  = u.id_usuario
-            JOIN modo_juego mj ON p.id_modo     = mj.id_modo
-            WHERE pt.id_puntaje = %s
-        """, (id,))
-        puntaje = cur.fetchone()
-        if not puntaje:
-            raise HTTPException(status_code=404, detail="Puntaje no encontrado")
-        return puntaje
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/puntaje/{id}")
+async def select_puntaje(id: int):
+    cursor_obj.execute("""
+        SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
+        FROM puntaje pt
+        JOIN partida    p  ON pt.id_partida = p.id_partida
+        JOIN usuario    u  ON p.id_usuario  = u.id_usuario
+        JOIN modo_juego mj ON p.id_modo     = mj.id_modo
+        WHERE pt.id_puntaje = """ + str(id))
+    row = cursor_obj.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Puntaje no encontrado")
+    return row
 
-@app.put("/puntaje/{id}")
-async def actualizar_puntaje(id: int, puntos: int, tiros: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Puntaje no encontrado")
-        cur.execute(
-            "UPDATE puntaje SET puntos=%s, tiros=%s WHERE id_puntaje=%s",
-            (puntos, tiros, id)
-        )
-        conn.commit()
-        return {"mensaje": "Puntaje actualizado"}
-    finally:
-        cur.close(); conn.close()
+@app.put("/update/puntaje/{id}")
+async def update_puntaje(id: int, puntos: int, tiros: int):
+    cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Puntaje no encontrado")
+    sql = "UPDATE puntaje SET puntos=" + str(puntos) + ", tiros=" + str(tiros) + \
+        " WHERE id_puntaje=" + str(id)
+    cursor_obj.execute(sql)
+    cc.commit()
+    return {"mensaje": "Puntaje actualizado"}
 
-@app.delete("/puntaje/{id}")
-async def eliminar_puntaje(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Puntaje no encontrado")
-        cur.execute("DELETE FROM puntaje WHERE id_puntaje = %s", (id,))
-        conn.commit()
-        return {"mensaje": "Puntaje eliminado"}
-    finally:
-        cur.close(); conn.close()
+@app.delete("/delete/puntaje/{id}")
+async def delete_puntaje(id: int):
+    cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Puntaje no encontrado")
+    cursor_obj.execute("DELETE FROM puntaje WHERE id_puntaje = " + str(id))
+    cc.commit()
+    return {"mensaje": "Puntaje eliminado"}
 
 
 # =========================================================
 # ======================== RANKING ========================
 # =========================================================
 
-@app.post("/ranking")
-async def crear_o_actualizar_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_usuario FROM usuario WHERE id_usuario = %s", (id_usuario,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        cur.execute("SELECT id_modo FROM modo_juego WHERE id_modo = %s", (id_modo,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Modo no encontrado")
-        cur.execute("SELECT puntos FROM puntaje WHERE id_puntaje = %s", (id_puntaje,))
-        puntaje = cur.fetchone()
-        if not puntaje:
-            raise HTTPException(status_code=404, detail="Puntaje no encontrado")
+@app.post("/insert/ranking")
+async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
+    cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id_usuario))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id_modo))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Modo no encontrado")
+    cursor_obj.execute("SELECT puntos FROM puntaje WHERE id_puntaje = " + str(id_puntaje))
+    puntaje = cursor_obj.fetchone()
+    if not puntaje:
+        raise HTTPException(status_code=404, detail="Puntaje no encontrado")
 
-        puntos_nuevos = puntaje["puntos"]
+    puntos_nuevos = puntaje["puntos"]
 
-        cur.execute("""
-            SELECT r.id_ranking, p.puntos AS mejor_puntos
-            FROM ranking r
-            JOIN puntaje p ON r.id_puntaje = p.id_puntaje
-            WHERE r.id_usuario = %s AND r.id_modo = %s
-        """, (id_usuario, id_modo))
-        existente = cur.fetchone()
+    cursor_obj.execute("""
+        SELECT r.id_ranking, p.puntos AS mejor_puntos
+        FROM ranking r
+        JOIN puntaje p ON r.id_puntaje = p.id_puntaje
+        WHERE r.id_usuario = """ + str(id_usuario) + " AND r.id_modo = " + str(id_modo))
+    existente = cursor_obj.fetchone()
 
-        if not existente:
-            cur.execute(
-                "INSERT INTO ranking (fecha_ultima_partida, id_usuario, id_modo, id_puntaje) VALUES (NOW(), %s, %s, %s)",
-                (id_usuario, id_modo, id_puntaje)
-            )
-            conn.commit()
-            return {"mensaje": "Ranking creado"}
-        elif puntos_nuevos > existente["mejor_puntos"]:
-            cur.execute(
-                "UPDATE ranking SET id_puntaje=%s, fecha_ultima_partida=NOW() WHERE id_usuario=%s AND id_modo=%s",
-                (id_puntaje, id_usuario, id_modo)
-            )
-            conn.commit()
-            return {"mensaje": "Nuevo récord registrado"}
-        else:
-            return {"mensaje": "Puntaje no supera el récord actual"}
-    finally:
-        cur.close(); conn.close()
-
-@app.get("/ranking")
-async def listar_ranking():
-    conn, cur = get_cursor()
-    try:
-        cur.execute("""
-            SELECT r.id_ranking, u.nombre AS usuario, mj.nombre AS modo,
-                   p.puntos, p.tiros, r.fecha_ultima_partida
-            FROM ranking r
-            JOIN usuario    u  ON r.id_usuario = u.id_usuario
-            JOIN modo_juego mj ON r.id_modo    = mj.id_modo
-            JOIN puntaje    p  ON r.id_puntaje = p.id_puntaje
-            ORDER BY mj.nombre, p.puntos DESC
-        """)
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
-
-@app.get("/ranking/{id_modo}")
-async def ranking_por_modo(id_modo: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_modo FROM modo_juego WHERE id_modo = %s", (id_modo,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Modo no encontrado")
-        cur.execute("""
-            SELECT u.nombre AS usuario, p.puntos, p.tiros, r.fecha_ultima_partida
-            FROM ranking r
-            JOIN usuario u  ON r.id_usuario = u.id_usuario
-            JOIN puntaje p  ON r.id_puntaje = p.id_puntaje
-            WHERE r.id_modo = %s
-            ORDER BY p.puntos DESC
-        """, (id_modo,))
-        return cur.fetchall()
-    finally:
-        cur.close(); conn.close()
-
-@app.put("/ranking/{id}")
-async def actualizar_ranking(id: int, id_puntaje: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_ranking FROM ranking WHERE id_ranking = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Ranking no encontrado")
-        cur.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = %s", (id_puntaje,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Puntaje no encontrado")
-        cur.execute(
-            "UPDATE ranking SET id_puntaje=%s, fecha_ultima_partida=NOW() WHERE id_ranking=%s",
-            (id_puntaje, id)
+    if not existente:
+        cursor_obj.execute(
+            "INSERT INTO ranking (fecha_ultima_partida, id_usuario, id_modo, id_puntaje) VALUES (NOW()," +
+            str(id_usuario) + "," + str(id_modo) + "," + str(id_puntaje) + ")"
         )
-        conn.commit()
-        return {"mensaje": "Ranking actualizado"}
-    finally:
-        cur.close(); conn.close()
+        cc.commit()
+        return {"mensaje": "Ranking creado"}
+    elif puntos_nuevos > existente["mejor_puntos"]:
+        cursor_obj.execute(
+            "UPDATE ranking SET id_puntaje=" + str(id_puntaje) +
+            ", fecha_ultima_partida=NOW() WHERE id_usuario=" + str(id_usuario) +
+            " AND id_modo=" + str(id_modo)
+        )
+        cc.commit()
+        return {"mensaje": "Nuevo récord registrado"}
+    else:
+        return {"mensaje": "Puntaje no supera el récord actual"}
 
-@app.delete("/ranking/{id}")
-async def eliminar_ranking(id: int):
-    conn, cur = get_cursor()
-    try:
-        cur.execute("SELECT id_ranking FROM ranking WHERE id_ranking = %s", (id,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Ranking no encontrado")
-        cur.execute("DELETE FROM ranking WHERE id_ranking = %s", (id,))
-        conn.commit()
-        return {"mensaje": "Ranking eliminado"}
-    finally:
-        cur.close(); conn.close()
+@app.get("/select/ranking")
+async def select_ranking():
+    cursor_obj.execute("""
+        SELECT r.id_ranking, u.nombre AS usuario, mj.nombre AS modo,
+               p.puntos, p.tiros, r.fecha_ultima_partida
+        FROM ranking r
+        JOIN usuario    u  ON r.id_usuario = u.id_usuario
+        JOIN modo_juego mj ON r.id_modo    = mj.id_modo
+        JOIN puntaje    p  ON r.id_puntaje = p.id_puntaje
+        ORDER BY mj.nombre, p.puntos DESC
+    """)
+    return cursor_obj.fetchall()
+
+@app.get("/select/ranking/{id_modo}")
+async def select_ranking_por_modo(id_modo: int):
+    cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id_modo))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Modo no encontrado")
+    cursor_obj.execute("""
+        SELECT u.nombre AS usuario, p.puntos, p.tiros, r.fecha_ultima_partida
+        FROM ranking r
+        JOIN usuario u  ON r.id_usuario = u.id_usuario
+        JOIN puntaje p  ON r.id_puntaje = p.id_puntaje
+        WHERE r.id_modo = """ + str(id_modo) + " ORDER BY p.puntos DESC")
+    return cursor_obj.fetchall()
+
+@app.put("/update/ranking/{id}")
+async def update_ranking(id: int, id_puntaje: int):
+    cursor_obj.execute("SELECT id_ranking FROM ranking WHERE id_ranking = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Ranking no encontrado")
+    cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id_puntaje))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Puntaje no encontrado")
+    cursor_obj.execute(
+        "UPDATE ranking SET id_puntaje=" + str(id_puntaje) +
+        ", fecha_ultima_partida=NOW() WHERE id_ranking=" + str(id)
+    )
+    cc.commit()
+    return {"mensaje": "Ranking actualizado"}
+
+@app.delete("/delete/ranking/{id}")
+async def delete_ranking(id: int):
+    cursor_obj.execute("SELECT id_ranking FROM ranking WHERE id_ranking = " + str(id))
+    if not cursor_obj.fetchone():
+        raise HTTPException(status_code=404, detail="Ranking no encontrado")
+    cursor_obj.execute("DELETE FROM ranking WHERE id_ranking = " + str(id))
+    cc.commit()
+    return {"mensaje": "Ranking eliminado"}
