@@ -95,7 +95,7 @@ async def select_juegos():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de un juego por (id)
-@app.get("/select/juego/{id}", tags=["Juego"])
+@app.get("/select/juego/{id}", tags=["Juego"], response_model=Modo)
 async def select_juego(id: int):
     cursor_obj.execute("SELECT * FROM juego WHERE id_juego = " + str(id))
     row = cursor_obj.fetchone()
@@ -150,7 +150,7 @@ async def select_modos():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de un modo (id)
-@app.get("/select/modo/{id}", tags=["Modo"])
+@app.get("/select/modo/{id}", tags=["Modo"], response_model=Modo)
 async def select_modo(id: int):
     cursor_obj.execute("""
         SELECT mj.*, j.nombre AS nombre_juego
@@ -206,7 +206,7 @@ async def select_usuarios():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de un usuario (id)
-@app.get("/select/usuario/{id}", tags=["Usuario"])
+@app.get("/select/usuario/{id}", tags=["Usuario"], response_model=Modo)
 async def select_usuario(id: int):
     cursor_obj.execute(
         "SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario WHERE id_usuario = " + str(id)
@@ -266,7 +266,7 @@ async def select_partidas():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion de una partida (id)
-@app.get("/select/partida/{id}", tags=["Partida"])
+@app.get("/select/partida/{id}", tags=["Partida"], response_model=Modo)
 async def select_partida(id: int):
     cursor_obj.execute("""
         SELECT p.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -332,7 +332,7 @@ async def select_puntajes():
     return cursor_obj.fetchall()
  
 #Ruta para obtener informacion de un puntaje (id)
-@app.get("/select/puntaje/{id}", tags=["Puntaje"])
+@app.get("/select/puntaje/{id}", tags=["Puntaje"], response_model=Modo)
 async def select_puntaje(id: int):
     cursor_obj.execute("""
         SELECT pt.*, u.nombre AS nombre_usuario, mj.nombre AS nombre_modo
@@ -424,7 +424,7 @@ async def select_ranking():
     return cursor_obj.fetchall()
 
 #Ruta para obtener informacion del ranking (id)
-@app.get("/select/ranking/{id_modo}", tags=["Ranking"])
+@app.get("/select/ranking/{id_modo}", tags=["Ranking"], response_model=Modo)
 async def select_ranking_por_modo(id_modo: int):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id_modo))
     if not cursor_obj.fetchone():
