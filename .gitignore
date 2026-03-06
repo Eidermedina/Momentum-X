@@ -1,0 +1,9 @@
+# Entorno virtual
+Lib/
+Include/
+Scripts/
+pyvenv.cfg
+CACHEDIR.TAG
+__pycache__/
+*.pyc
+.vscode/
