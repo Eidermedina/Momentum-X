@@ -24,8 +24,7 @@ app = FastAPI()
 async def root():
     return {"message": "API MomentumX funcionando"}
 
-
-
+#Ruta para crear juego
 @app.post("/insert/juego")
 async def insert_juego(nombre: str, descripcion: str, version: str, licencia: str):
     sql = "INSERT INTO juego (nombre, descripcion, version, licencia) VALUES ('" + \
@@ -34,11 +33,13 @@ async def insert_juego(nombre: str, descripcion: str, version: str, licencia: st
     cc.commit()
     return {"mensaje": "Juego creado"}
 
+#Ruta para obtener informacion de un juego
 @app.get("/select/juego")
 async def select_juegos():
     cursor_obj.execute("SELECT * FROM juego ORDER BY id_juego")
     return cursor_obj.fetchall()
 
+#Ruta para obtener informacion de un juego por (id)
 @app.get("/select/juego/{id}")
 async def select_juego(id: int):
     cursor_obj.execute("SELECT * FROM juego WHERE id_juego = " + str(id))
@@ -47,6 +48,7 @@ async def select_juego(id: int):
         raise HTTPException(status_code=404, detail="Juego no encontrado")
     return row
 
+#Ruta para actualizar informacion de un juego
 @app.put("/update/juego/{id}")
 async def update_juego(id: int, nombre: str, descripcion: str, version: str, licencia: str):
     cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id))
@@ -59,6 +61,7 @@ async def update_juego(id: int, nombre: str, descripcion: str, version: str, lic
     cc.commit()
     return {"mensaje": "Juego actualizado"}
 
+#Ruta para eliminar un juego
 @app.delete("/delete/juego/{id}")
 async def delete_juego(id: int):
     cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id))
@@ -68,7 +71,7 @@ async def delete_juego(id: int):
     cc.commit()
     return {"mensaje": "Juego eliminado"}
 
-
+#Ruta para insertar un modo
 @app.post("/insert/modo")
 async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int):
     cursor_obj.execute("SELECT id_juego FROM juego WHERE id_juego = " + str(id_juego))
@@ -80,6 +83,7 @@ async def insert_modo(nombre: str, descripcion: str, activo: bool, id_juego: int
     cc.commit()
     return {"mensaje": "Modo creado"}
 
+#Ruta para obtener informacion de un modo
 @app.get("/select/modo")
 async def select_modos():
     cursor_obj.execute("""
@@ -90,6 +94,7 @@ async def select_modos():
     """)
     return cursor_obj.fetchall()
 
+#Ruta para obtener informacion de un modo (id)
 @app.get("/select/modo/{id}")
 async def select_modo(id: int):
     cursor_obj.execute("""
@@ -102,6 +107,7 @@ async def select_modo(id: int):
         raise HTTPException(status_code=404, detail="Modo no encontrado")
     return row
 
+#Ruta para actualizar informacion de un modo
 @app.put("/update/modo/{id}")
 async def update_modo(id: int, nombre: str, descripcion: str, activo: bool):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id))
@@ -113,6 +119,7 @@ async def update_modo(id: int, nombre: str, descripcion: str, activo: bool):
     cc.commit()
     return {"mensaje": "Modo actualizado"}
 
+#Ruta para eliminar un modo
 @app.delete("/delete/modo/{id}")
 async def delete_modo(id: int):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id))
@@ -122,13 +129,13 @@ async def delete_modo(id: int):
     cc.commit()
     return {"mensaje": "Modo eliminado"}
 
+#Ruta para insertar un usuario
 @app.post("/insert/usuario")
 async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo: bool = True):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE correo = '" + correo + "'")
     if cursor_obj.fetchone():
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
     
-    # Hashear la contraseña igual que lo hace el juego
     hash_pw = hashlib.sha256(contrasena_hash.encode()).hexdigest()
     
     sql = "INSERT INTO usuario (nombre, correo, contrasena_hash, fecha_registro, activo) VALUES ('" + \
@@ -137,11 +144,13 @@ async def insert_usuario(nombre: str, correo: str, contrasena_hash: str, activo:
     cc.commit()
     return {"mensaje": "Usuario creado"}
 
+#Ruta para obtener informacion de un usuario
 @app.get("/select/usuario")
 async def select_usuarios():
     cursor_obj.execute("SELECT id_usuario, nombre, correo, fecha_registro, activo FROM usuario ORDER BY id_usuario")
     return cursor_obj.fetchall()
 
+#Ruta para obtener informacion de un usuario (id)
 @app.get("/select/usuario/{id}")
 async def select_usuario(id: int):
     cursor_obj.execute(
@@ -152,6 +161,7 @@ async def select_usuario(id: int):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return row
 
+#Ruta para actualizar informacion de un usuario
 @app.put("/update/usuario/{id}")
 async def update_usuario(id: int, nombre: str, correo: str, activo: bool):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id))
@@ -163,6 +173,7 @@ async def update_usuario(id: int, nombre: str, correo: str, activo: bool):
     cc.commit()
     return {"mensaje": "Usuario actualizado"}
 
+#Ruta para eliminar un usuario
 @app.delete("/delete/usuario/{id}")
 async def delete_usuario(id: int):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id))
@@ -172,6 +183,7 @@ async def delete_usuario(id: int):
     cc.commit()
     return {"mensaje": "Usuario eliminado"}
 
+#Ruta para insertar una partida
 @app.post("/insert/partida")
 async def insert_partida(id_usuario: int, id_modo: int):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id_usuario))
@@ -186,6 +198,7 @@ async def insert_partida(id_usuario: int, id_modo: int):
     cc.commit()
     return {"mensaje": "Partida creada"}
 
+#Ruta para obtener informacion de una partida
 @app.get("/select/partida")
 async def select_partidas():
     cursor_obj.execute("""
@@ -197,6 +210,7 @@ async def select_partidas():
     """)
     return cursor_obj.fetchall()
 
+#Ruta para obtener informacion de una partida (id)
 @app.get("/select/partida/{id}")
 async def select_partida(id: int):
     cursor_obj.execute("""
@@ -210,6 +224,7 @@ async def select_partida(id: int):
         raise HTTPException(status_code=404, detail="Partida no encontrada")
     return row
 
+#Ruta para actualizar informacion de una partida
 @app.put("/update/partida/{id}")
 async def update_partida(id: int, estado: str):
     if estado not in ("en_curso", "finalizada", "abandonada"):
@@ -221,6 +236,7 @@ async def update_partida(id: int, estado: str):
     cc.commit()
     return {"mensaje": "Partida actualizada"}
 
+#Ruta para eliminar una partida
 @app.delete("/delete/partida/{id}")
 async def delete_partida(id: int):
     cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id))
@@ -230,6 +246,7 @@ async def delete_partida(id: int):
     cc.commit()
     return {"mensaje": "Partida eliminada"}
 
+#Ruta para insertar un puntaje
 @app.post("/insert/puntaje")
 async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
     cursor_obj.execute("SELECT id_partida FROM partida WHERE id_partida = " + str(id_partida))
@@ -246,6 +263,7 @@ async def insert_puntaje(puntos: int, tiros: int, id_partida: int):
     cc.commit()
     return {"mensaje": "Puntaje registrado"}
 
+#Ruta para obtener informacion de un puntaje
 @app.get("/select/puntaje")
 async def select_puntajes():
     cursor_obj.execute("""
@@ -257,7 +275,8 @@ async def select_puntajes():
         ORDER BY pt.puntos DESC
     """)
     return cursor_obj.fetchall()
-
+ 
+#Ruta para obtener informacion de un puntaje (id)
 @app.get("/select/puntaje/{id}")
 async def select_puntaje(id: int):
     cursor_obj.execute("""
@@ -272,6 +291,7 @@ async def select_puntaje(id: int):
         raise HTTPException(status_code=404, detail="Puntaje no encontrado")
     return row
 
+#Ruta para actualizar informacion de un puntaje
 @app.put("/update/puntaje/{id}")
 async def update_puntaje(id: int, puntos: int, tiros: int):
     cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id))
@@ -283,6 +303,7 @@ async def update_puntaje(id: int, puntos: int, tiros: int):
     cc.commit()
     return {"mensaje": "Puntaje actualizado"}
 
+#Ruta para eliminar un puntaje
 @app.delete("/delete/puntaje/{id}")
 async def delete_puntaje(id: int):
     cursor_obj.execute("SELECT id_puntaje FROM puntaje WHERE id_puntaje = " + str(id))
@@ -292,6 +313,7 @@ async def delete_puntaje(id: int):
     cc.commit()
     return {"mensaje": "Puntaje eliminado"}
 
+#Ruta para insertar un ranking
 @app.post("/insert/ranking")
 async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
     cursor_obj.execute("SELECT id_usuario FROM usuario WHERE id_usuario = " + str(id_usuario))
@@ -332,6 +354,7 @@ async def insert_ranking(id_usuario: int, id_modo: int, id_puntaje: int):
     else:
         return {"mensaje": "Puntaje no supera el récord actual"}
 
+#Ruta para obtener informacion del ranking
 @app.get("/select/ranking")
 async def select_ranking():
     cursor_obj.execute("""
@@ -345,6 +368,7 @@ async def select_ranking():
     """)
     return cursor_obj.fetchall()
 
+#Ruta para obtener informacion del ranking (id)
 @app.get("/select/ranking/{id_modo}")
 async def select_ranking_por_modo(id_modo: int):
     cursor_obj.execute("SELECT id_modo FROM modo_juego WHERE id_modo = " + str(id_modo))
@@ -358,6 +382,7 @@ async def select_ranking_por_modo(id_modo: int):
         WHERE r.id_modo = """ + str(id_modo) + " ORDER BY p.puntos DESC")
     return cursor_obj.fetchall()
 
+#Ruta para actualizar informacion del ranking
 @app.put("/update/ranking/{id}")
 async def update_ranking(id: int, id_puntaje: int):
     cursor_obj.execute("SELECT id_ranking FROM ranking WHERE id_ranking = " + str(id))
@@ -373,6 +398,7 @@ async def update_ranking(id: int, id_puntaje: int):
     cc.commit()
     return {"mensaje": "Ranking actualizado"}
 
+#Ruta para eliminar un ranking
 @app.delete("/delete/ranking/{id}")
 async def delete_ranking(id: int):
     cursor_obj.execute("SELECT id_ranking FROM ranking WHERE id_ranking = " + str(id))
