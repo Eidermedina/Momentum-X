@@ -81,9 +81,9 @@ async def root():
 
 #Ruta para crear juego
 @app.post("/insert/juego", tags=["Juego"])
-async def insert_juego(juego: Juego):
+async def insert_juego(nombre: str, descripcion: str, version: str, licencia: str):
     sql = "INSERT INTO juego (nombre, descripcion, version, licencia) VALUES ('" + \
-        juego + "','" + juego + "','" + juego + "','" + juego + "')"
+        nombre + "','" + descripcion + "','" + version + "','" + licencia + "')"
     cursor_obj.execute(sql)
     cc.commit()
     return {"mensaje": "Juego creado"}
